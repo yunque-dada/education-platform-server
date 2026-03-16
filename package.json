@@ -1,9 +1,11 @@
 {
-  "name": "education-platform-server",
+  "name": "education-platform",
   "version": "1.0.0",
+  "description": "乐造编程教育平台",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "express": "4.18.2",

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理员登录 - 乐造编程</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      width: 90%;
+      max-width: 400px;
+    }
+    h1 { text-align: center; color: #333; margin-bottom: 30px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+    input { 
+      width: 100%; padding: 14px; border: 2px solid #e0e0e0; 
+      border-radius: 10px; font-size: 16px;
+    }
+    input:focus { outline: none; border-color: #11998e; }
+    button { 
+      width: 100%; padding: 14px; 
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { transform: translateY(-2px); }
+    .links { text-align: center; margin-top: 20px; }
+    .links a { color: #11998e; text-decoration: none; }
+    .error { color: #e74c3c; text-align: center; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>🔧 管理后台</h1>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>管理员账号</label>
+        <input type="text" id="username" required placeholder="请输入管理员账号">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="password" required placeholder="请输入密码">
+      </div>
+      <button type="submit">登录</button>
+      <div class="error" id="error"></div>
+    </form>
+    <div class="links">
+      <a href="login.html">返回用户登录</a>
+    </div>
+  </div>
+  <script>
+    const API = "";
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const u = document.getElementById("username").value;
+      const p = document.getElementById("password").value;
+      const err = document.getElementById("error");
+      err.textContent = "";
+      try {
+        const res = await fetch(API + "/api/admin/login", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({username: u, password: p})
+        });
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          location.href = "admin-index.html";
+        } else {
+          err.textContent = data.error || "登录失败";
+        }
+      } catch (e) {
+        err.textContent = "网络错误";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>乐造编程 - 首页</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
+    header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
+    .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 24px; }
+    .user-info { display: flex; align-items: center; gap: 15px; }
+    .logout-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+    .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    .section { background: white; border-radius: 15px; padding: 30px; margin-bottom: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+    h2 { color: #333; margin-bottom: 20px; }
+    .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .project-card { border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; transition: transform 0.2s, box-shadow 0.2s; }
+    .project-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .project-name { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 10px; }
+    .project-desc { color: #666; font-size: 14px; margin-bottom: 15px; }
+    .project-date { color: #999; font-size: 12px; }
+    .btn { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #5a6fd6; }
+    .empty { text-align: center; color: #999; padding: 40px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1>🎓 乐造编程</h1>
+      <div class="user-info">
+        <span id="userName"></span>
+        <button class="logout-btn" onclick="logout()">退出登录</button>
+      </div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="section">
+      <h2>📁 我的作品</h2>
+      <button class="btn" onclick="showUpload()" style="margin-bottom: 20px;">+ 新建作品</button>
+      <div class="projects-grid" id="projectsList">
+        <div class="empty">暂无作品</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = "";
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    
+    if (!token) location.href = "login.html";
+    document.getElementById("userName").textContent = user.nickname || user.username;
+    
+    function logout() {
+      localStorage.clear();
+      location.href = "login.html";
+    }
+    
+    async function loadProjects() {
+      try {
+        const res = await fetch(API + "/api/projects", {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const projects = await res.json();
+        const list = document.getElementById("projectsList");
+        if (projects.length === 0) {
+          list.innerHTML = '<div class="empty">暂无作品</div>';
+        } else {
+          list.innerHTML = projects.map(p => `
+            <div class="project-card">
+              <div class="project-name">${p.name}</div>
+              <div class="project-desc">${p.description || "无描述"}</div>
+              <div class="project-date">创建于: ${new Date(p.createdAt).toLocaleDateString()}</div>
+            </div>
+          `).join("");
+        }
+      } catch(e) {
+        console.error(e);
+      }
+    }
+    
+    function showUpload() {
+      const name = prompt("作品名称:");
+      if (!name) return;
+      const desc = prompt("作品描述:");
+      fetch(API + "/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ name, description: desc })
+      }).then(() => loadProjects());
+    }
+    
+    loadProjects();
+  </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>乐造编程 - 登录</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      width: 90%;
+      max-width: 400px;
+    }
+    h1 { 
+      text-align: center; 
+      color: #333; 
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+    .form-group { margin-bottom: 20px; }
+    label { 
+      display: block; 
+      margin-bottom: 8px; 
+      color: #555;
+      font-weight: 500;
+    }
+    input { 
+      width: 100%; 
+      padding: 14px; 
+      border: 2px solid #e0e0e0; 
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    input:focus { 
+      outline: none; 
+      border-color: #667eea;
+    }
+    button { 
+      width: 100%; 
+      padding: 14px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    .links { 
+      text-align: center; 
+      margin-top: 20px;
+    }
+    .links a { 
+      color: #667eea; 
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .links a:hover { text-decoration: underline; }
+    .error { 
+      color: #e74c3c; 
+      text-align: center; 
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>🎓 乐造编程</h1>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>用户名</label>
+        <input type="text" id="username" required placeholder="请输入用户名">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="password" required placeholder="请输入密码">
+      </div>
+      <button type="submit">登录</button>
+      <div class="error" id="error"></div>
+    </form>
+    <div class="links">
+      <a href="register.html">还没有账号？立即注册</a>
+      <br><br>
+      <a href="admin-login.html">管理员入口</a>
+    </div>
+  </div>
+  <script>
+    const API = "";
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const u = document.getElementById("username").value;
+      const p = document.getElementById("password").value;
+      const err = document.getElementById("error");
+      err.textContent = "";
+      try {
+        const res = await fetch(API + "/api/auth/login", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({username: u, password: p})
+        });
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          location.href = "index.html";
+        } else {
+          err.textContent = data.error || "登录失败";
+        }
+      } catch (e) {
+        err.textContent = "网络错误";
+      }
+    });
+  </script>
+</body>
+</html>
