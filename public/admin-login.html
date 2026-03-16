@@ -72,8 +72,8 @@
       try {
         const res = await fetch(API + "/api/admin/login", {
           method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({username: u, password: p})
+          headers: {"Content-Type": "application/x-www-form-urlencoded"},
+          body: "username=" + encodeURIComponent(u) + "&password=" + encodeURIComponent(p)
         });
         const data = await res.json();
         if (data.token) {
