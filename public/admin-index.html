@@ -24,6 +24,8 @@
     .btn:hover { background: #0d8a7b; }
     .btn-danger { background: #e74c3c; }
     .btn-danger:hover { background: #c0392b; }
+    .btn-warning { background: #f39c12; }
+    .btn-warning:hover { background: #e67e22; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
     th { background: #f8f9fa; font-weight: 600; color: #333; }
@@ -40,8 +42,10 @@
     .form-group label { display: block; margin-bottom: 5px; color: #555; }
     .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
     .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-    .toast { position: fixed; top: 20px; right: 20px; background: #27ae60; color: white; padding: 15px 25px; border-radius: 10px; display: none; }
+    .toast { position: fixed; top: 20px; right: 20px; background: #27ae60; color: white; padding: 15px 25px; border-radius: 10px; display: none; z-index: 10000; }
     .toast.show { display: block; }
+    .toast.error { background: #e74c3c; }
+    .toast.warning { background: #f39c12; }
   </style>
 </head>
 <body>
@@ -50,6 +54,7 @@
       <h1>🔧 管理后台</h1>
       <div class="user-info">
         <span id="userName"></span>
+        <button class="btn btn-warning" onclick="showChangePwd()">修改密码</button>
         <button class="logout-btn" onclick="logout()">退出登录</button>
       </div>
     </div>
@@ -93,6 +98,7 @@
     </div>
   </div>
 
+  <!-- 添加用户弹窗 -->
   <div class="modal" id="addUserModal">
     <div class="modal-content">
       <h3>添加用户</h3>
@@ -117,8 +123,31 @@
         </select>
       </div>
       <div class="modal-btns">
-        <button class="btn" onclick="closeModal()">取消</button>
+        <button class="btn" onclick="closeModal('addUserModal')">取消</button>
         <button class="btn" onclick="addUser()">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改密码弹窗 -->
+  <div class="modal" id="changePwdModal">
+    <div class="modal-content">
+      <h3>修改密码</h3>
+      <div class="form-group">
+        <label>原密码</label>
+        <input type="password" id="oldPassword" placeholder="请输入原密码">
+      </div>
+      <div class="form-group">
+        <label>新密码</label>
+        <input type="password" id="newPassword1" placeholder="至少6个字符">
+      </div>
+      <div class="form-group">
+        <label>确认新密码</label>
+        <input type="password" id="newPassword2" placeholder="再次输入新密码">
+      </div>
+      <div class="modal-btns">
+        <button class="btn" onclick="closeModal('changePwdModal')">取消</button>
+        <button class="btn" onclick="changePassword()">确认修改</button>
       </div>
     </div>
   </div>
@@ -130,6 +159,13 @@
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     
+    // 检查是否需要修改密码
+    const mustChangePassword = localStorage.getItem("mustChangePassword") === "true";
+    if (mustChangePassword) {
+      alert("首次登录必须修改密码！");
+      showChangePwd();
+    }
+    
     if (!token || user.role !== "admin") location.href = "admin-login.html";
     document.getElementById("userName").textContent = user.nickname || user.username;
     
@@ -138,21 +174,23 @@
       location.href = "admin-login.html";
     }
     
-    function showToast(msg) {
+    function showToast(msg, type = "success") {
       const t = document.getElementById("toast");
       t.textContent = msg;
-      t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 3000);
+      t.className = "toast show " + type;
+      setTimeout(() => t.className = "toast", 3000);
     }
     
     function showAddUser() { document.getElementById("addUserModal").classList.add("show"); }
-    function closeModal() { document.getElementById("addUserModal").classList.remove("show"); }
+    function showChangePwd() { document.getElementById("changePwdModal").classList.add("show"); }
+    function closeModal(id) { document.getElementById(id).classList.remove("show"); }
     
     async function loadUsers() {
       try {
         const res = await fetch(API + "/api/admin/users", {
           headers: { "Authorization": "Bearer " + token }
         });
+        if (res.status === 401) { logout(); return; }
         const users = await res.json();
         
         document.getElementById("userCount").textContent = users.length;
@@ -163,8 +201,8 @@
         tbody.innerHTML = users.map(u => `
           <tr>
             <td>${u.id}</td>
-            <td>${u.username}</td>
-            <td>${u.nickname || "-"}</td>
+            <td>${escapeHtml(u.username)}</td>
+            <td>${escapeHtml(u.nickname || "-")}</td>
             <td><span class="role-badge role-${u.role}">${u.role}</span></td>
             <td>${new Date(u.createdAt).toLocaleDateString()}</td>
             <td>
@@ -172,7 +210,13 @@
             </td>
           </tr>
         `).join("");
-      } catch(e) { console.error(e); }
+      } catch(e) { console.error(e); showToast("加载失败", "error"); }
+    }
+    
+    // XSS防护：HTML转义
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
     
     async function addUser() {
@@ -181,7 +225,7 @@
       const password = document.getElementById("newPassword").value;
       const role = document.getElementById("newRole").value;
       
-      if (!username || !password) { showToast("请填写完整信息"); return; }
+      if (!username || !password) { showToast("请填写完整信息", "error"); return; }
       
       try {
         const res = await fetch(API + "/api/admin/users", {
@@ -192,12 +236,16 @@
         const data = await res.json();
         if (data.message) {
           showToast("添加成功");
-          closeModal();
+          closeModal('addUserModal');
           loadUsers();
+          // 清空表单
+          document.getElementById("newUsername").value = "";
+          document.getElementById("newNickname").value = "";
+          document.getElementById("newPassword").value = "";
         } else {
-          showToast(data.error || "添加失败");
+          showToast(data.error || "添加失败", "error");
         }
-      } catch(e) { showToast("网络错误"); }
+      } catch(e) { showToast("网络错误", "error"); }
     }
     
     async function deleteUser(id) {
@@ -212,9 +260,41 @@
           showToast("删除成功");
           loadUsers();
         } else {
-          showToast(data.error || "删除失败");
+          showToast(data.error || "删除失败", "error");
         }
-      } catch(e) { showToast("网络错误"); }
+      } catch(e) { showToast("网络错误", "error"); }
+    }
+    
+    async function changePassword() {
+      const oldPassword = document.getElementById("oldPassword").value;
+      const newPassword1 = document.getElementById("newPassword1").value;
+      const newPassword2 = document.getElementById("newPassword2").value;
+      
+      if (!oldPassword || !newPassword1 || !newPassword2) {
+        showToast("请填写完整", "error"); return;
+      }
+      if (newPassword1 !== newPassword2) {
+        showToast("两次密码不一致", "error"); return;
+      }
+      if (newPassword1.length < 6) {
+        showToast("密码至少6位", "error"); return;
+      }
+      
+      try {
+        const res = await fetch(API + "/api/auth/change-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ oldPassword, newPassword: newPassword1 })
+        });
+        const data = await res.json();
+        if (data.message) {
+          showToast("密码修改成功");
+          localStorage.setItem("mustChangePassword", "false");
+          closeModal('changePwdModal');
+        } else {
+          showToast(data.error || "修改失败", "error");
+        }
+      } catch(e) { showToast("网络错误", "error"); }
     }
     
     loadUsers();
