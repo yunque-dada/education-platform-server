@@ -314,6 +314,6 @@ app.put('/api/teacher/projects/:id', requireTeacher, (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log('教育平台服务已启动: http://localhost:' + PORT);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('教育平台服务已启动: http://0.0.0.0:' + PORT);
 });
