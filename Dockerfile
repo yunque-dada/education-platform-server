@@ -1,10 +1,10 @@
-FROM node:22-alpine
+FROM node:18-bullseye
 
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN apk add --no-cache sqlite3 make g++ python3
+RUN apt-get update && apt-get install -y sqlite3 build-essential python3
 
 RUN npm install --production
 
