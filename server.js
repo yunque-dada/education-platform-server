@@ -23,7 +23,8 @@ db.serialize(() => {
   
   db.get("SELECT COUNT(*) as cnt FROM courses", (err, row) => {
     if (!row || row.cnt === 0) {
-      db.run("INSERT INTO courses (title, description, level, duration, status) VALUES ('Scratch趣味编程', '适合零基础学员，通过拖拽式编程培养逻辑思维', '入门', 20, 'published'), ('Python基础', 'Python编程入门，学习变量、循环、函数等基础概念', '入门', 30, 'published')");
+      db.run("INSERT INTO courses (title, description, level, duration, status) VALUES ('Scratch趣味编程', '适合零基础学员，通过拖拽式编程培养逻辑思维', '入门', 20, 'published')");
+      db.run("INSERT INTO courses (title, description, level, duration, status) VALUES ('Python基础', 'Python编程入门，学习变量、循环、函数等基础概念', '入门', 30, 'published')");
       console.log('示例课程已创建');
     }
   });
@@ -43,8 +44,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
 
+// 健康检查
 app.get('/api/health', (req, res) => res.json({status:'ok', time:new Date()}));
 
+// 注册
 app.post('/api/auth/register', async (req, res) => {
   const {username, password, role='student', nickname} = req.body;
   try {
@@ -56,6 +59,7 @@ app.post('/api/auth/register', async (req, res) => {
   } catch(e) { res.status(500).json({error:'注册失败'}); }
 });
 
+// 登录
 app.post('/api/auth/login', async (req, res) => {
   const {username, password} = req.body;
   const bcrypt = require('bcryptjs');
@@ -69,6 +73,7 @@ app.post('/api/auth/login', async (req, res) => {
   });
 });
 
+// 获取用户信息
 app.get('/api/auth/user', (req, res) => {
   const jwt = require('jsonwebtoken');
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -82,6 +87,7 @@ app.get('/api/auth/user', (req, res) => {
   } catch(e) { res.status(401).json({error:'登录已过期'}); }
 });
 
+// 管理员中间件
 const requireAdmin = (req, res, next) => {
   const jwt = require('jsonwebtoken');
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -94,6 +100,7 @@ const requireAdmin = (req, res, next) => {
   } catch(e) { res.status(401).json({error:'登录已过期'}); }
 };
 
+// 老师中间件
 const requireTeacher = (req, res, next) => {
   const jwt = require('jsonwebtoken');
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -106,6 +113,8 @@ const requireTeacher = (req, res, next) => {
   } catch(e) { res.status(401).json({error:'登录已过期'}); }
 };
 
+// ===== 管理员API =====
+// 仪表盘
 app.get('/api/admin/dashboard', requireAdmin, (req, res) => {
   db.get('SELECT COUNT(*) as total FROM users', (e,r1) => {
     db.get('SELECT COUNT(*) as c FROM users WHERE role="admin"', (e,r2) => {
@@ -122,6 +131,7 @@ app.get('/api/admin/dashboard', requireAdmin, (req, res) => {
   });
 });
 
+// 用户管理
 app.get('/api/admin/users', requireAdmin, (req, res) => {
   db.all('SELECT id,username,role,nickname,created_at FROM users ORDER BY id DESC', [], (err,users) => {
     if(err) return res.status(500).json({error:'获取失败'});
@@ -146,7 +156,7 @@ app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
     const hashed = await require('bcryptjs').hash(password, 10);
     db.run('UPDATE users SET role=?,password=?,nickname=? WHERE id=?', [role||'student', hashed, nickname||null, id], e=>e?res.status(500).json({error:'更新失败'}):res.json({message:'更新成功'}));
   } else {
-    db.run('UPDATE users SET role=?,nickname=? WHERE id=?', [role||'student', nickname||null, id], e=>e?res.status(500).json({error:'更新失败'}):res.json({message:'更新成功'}));
+    db.run('UPDATE users SET role=?,nickname=? WHERE id=?', [role||'student', nickname||null, id], e=>e?res.status(500).json({error:'更新成功'}):res.json({message:'更新成功'}));
   }
 });
 
@@ -156,7 +166,8 @@ app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
   db.run('DELETE FROM users WHERE id=?', [id], e=>e?res.status(500).json({error:'删除失败'}):res.json({message:'删除成功'}));
 });
 
-// 课程API
+// ===== 课程API =====
+// 课程列表
 app.get('/api/courses', (req, res) => {
   db.all('SELECT c.*, u.nickname as teacher_name FROM courses c LEFT JOIN users u ON c.teacher_id = u.id WHERE c.status = "published" ORDER BY c.id DESC', [], (err, courses) => {
     if(err) return res.status(500).json({error:'获取失败'});
@@ -164,6 +175,7 @@ app.get('/api/courses', (req, res) => {
   });
 });
 
+// 课程详情
 app.get('/api/courses/:id', (req, res) => {
   db.get('SELECT c.*, u.nickname as teacher_name FROM courses c LEFT JOIN users u ON c.teacher_id = u.id WHERE c.id = ?', [req.params.id], (err, course) => {
     if(err||!course) return res.status(404).json({error:'课程不存在'});
@@ -171,8 +183,11 @@ app.get('/api/courses/:id', (req, res) => {
   });
 });
 
+// 老师课程管理
 app.get('/api/teacher/courses', requireTeacher, (req, res) => {
-  const sql = req.user.role === 'admin' ? 'SELECT c.*, u.nickname as teacher_name FROM courses c LEFT JOIN users u ON c.teacher_id = u.id ORDER BY c.id DESC' : 'SELECT c.*, u.nickname as teacher_name FROM courses c LEFT JOIN users u ON c.teacher_id = u.id WHERE c.teacher_id = ? ORDER BY c.id DESC';
+  const sql = req.user.role === 'admin' 
+    ? 'SELECT c.*, u.nickname as teacher_name FROM courses c LEFT JOIN users u ON c.teacher_id = u.id ORDER BY c.id DESC'
+    : 'SELECT c.*, u.nickname as teacher_name FROM courses c LEFT JOIN users u ON c.teacher_id = u.id WHERE c.teacher_id = ? ORDER BY c.id DESC';
   const params = req.user.role === 'admin' ? [] : [req.user.id];
   db.all(sql, params, (err, courses) => {
     if(err) return res.status(500).json({error:'获取失败'});
@@ -201,7 +216,8 @@ app.delete('/api/admin/courses/:id', requireAdmin, (req, res) => {
   db.run('DELETE FROM courses WHERE id=?', [req.params.id], e=>e?res.status(500).json({error:'删除失败'}):res.json({message:'删除成功'}));
 });
 
-// 报名API
+// ===== 报名API =====
+// 报名课程
 app.post('/api/student/enroll', (req, res) => {
   const jwt = require('jsonwebtoken');
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -220,6 +236,7 @@ app.post('/api/student/enroll', (req, res) => {
   } catch(e) { res.status(401).json({error:'登录已过期'}); }
 });
 
+// 我的课程
 app.get('/api/student/my-courses', (req, res) => {
   const jwt = require('jsonwebtoken');
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -233,7 +250,8 @@ app.get('/api/student/my-courses', (req, res) => {
   } catch(e) { res.status(401).json({error:'登录已过期'}); }
 });
 
-// 作品API
+// ===== 作品API =====
+// 获取作品
 app.get('/api/projects', (req, res) => {
   const jwt = require('jsonwebtoken');
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -247,6 +265,7 @@ app.get('/api/projects', (req, res) => {
   } catch(e) { res.status(401).json({error:'登录已过期'}); }
 });
 
+// 老师待审核作品
 app.get('/api/teacher/projects', requireTeacher, (req, res) => {
   db.all("SELECT p.*, u.username, c.title as course_title FROM projects p JOIN users u ON p.user_id = u.id LEFT JOIN courses c ON p.course_id = c.id WHERE p.status = 'pending' ORDER BY p.created_at DESC", [], (err, projects) => {
     if(err) return res.status(500).json({error:'获取失败'});
@@ -254,6 +273,7 @@ app.get('/api/teacher/projects', requireTeacher, (req, res) => {
   });
 });
 
+// 保存作品
 const multer = require('multer');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(uploadsDir, 'projects')),
@@ -269,6 +289,7 @@ app.post('/api/projects', upload.single('file'), (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     const {name, description, projectId, course_id, status} = req.body;
     const filePath = req.file ? '/uploads/projects/' + req.file.filename : null;
+    
     if(projectId) {
       db.run('UPDATE projects SET name=?, file_path=?, description=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?', [name, filePath, description, status||'draft', projectId, decoded.id], function(err) {
         if(err) return res.status(500).json({error:'保存失败'});
@@ -283,6 +304,7 @@ app.post('/api/projects', upload.single('file'), (req, res) => {
   } catch(e) { res.status(401).json({error:'登录已过期'}); }
 });
 
+// 审核作品
 app.put('/api/teacher/projects/:id', requireTeacher, (req, res) => {
   const {status} = req.body;
   if(!status) return res.status(400).json({error:'状态必填'});

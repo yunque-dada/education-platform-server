@@ -10,5 +10,28 @@
       "createdAt": "2026-03-18T08:34:29.145Z"
     }
   ],
+  "courses": [
+    {
+      "id": 1,
+      "title": "Scratch趣味编程",
+      "description": "适合零基础学员，通过拖拽式编程培养逻辑思维",
+      "level": "入门",
+      "duration": 20,
+      "status": "published",
+      "teacher_id": null,
+      "created_at": "2026-03-19T19:12:27.248Z"
+    },
+    {
+      "id": 2,
+      "title": "Python基础",
+      "description": "Python编程入门，学习变量、循环、函数等基础概念",
+      "level": "入门",
+      "duration": 30,
+      "status": "published",
+      "teacher_id": null,
+      "created_at": "2026-03-19T19:12:27.250Z"
+    }
+  ],
+  "enrollments": [],
   "projects": []
 }
