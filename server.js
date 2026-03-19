@@ -46,6 +46,7 @@ app.use('/uploads', express.static(uploadsDir));
 
 // 健康检查
 app.get('/api/health', (req, res) => res.json({status:'ok', time:new Date()}));
+app.get('/', (req, res) => res.send('Education Platform API Running'));
 
 // 注册
 app.post('/api/auth/register', async (req, res) => {
