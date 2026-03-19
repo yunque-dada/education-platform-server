@@ -1,4 +1,14 @@
 {
-  "users": [],
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$2a$10$dz.Px/CiQuFglSF4Bk4KI.0fgvrX9cz2tu7ubCGdSeD4OH.QIEW9S",
+      "role": "admin",
+      "nickname": "管理员",
+      "mustChangePassword": true,
+      "createdAt": "2026-03-18T08:34:29.145Z"
+    }
+  ],
   "projects": []
 }

@@ -1,284 +1,251 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
-const morgan = require("morgan");
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+
+const dbPath = path.join(__dirname, 'data.db');
+const db = new (require('sqlite3').verbose()).Database(dbPath);
+
+// 初始化数据库
+db.serialize(() => {
+  db.run('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT DEFAULT "student", nickname TEXT, avatar TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+  db.run('CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, name TEXT NOT NULL, file_path TEXT NOT NULL, cover_path TEXT, description TEXT, is_public INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id))');
+  
+  // 创建默认管理员
+  db.get("SELECT * FROM users WHERE username = 'admin'", (err, row) => {
+    if (!row) {
+      const bcrypt = require('bcryptjs');
+      bcrypt.hash('123456', 10).then(hash => {
+        db.run('INSERT INTO users (username, password, role, nickname) VALUES (?, ?, ?, ?)', ['admin', hash, 'admin', '管理员']);
+        console.log('默认管理员账号已创建: admin / 123456');
+      });
+    }
+  });
+  console.log('数据库初始化完成');
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const JWT_SECRET = 'education-platform-secret-key-2024';
 
-// 安全：JWT_SECRET从环境变量读取，禁止硬编码
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.warn("⚠️ 警告: JWT_SECRET未设置，请设置环境变量 JWT_SECRET");
-  console.warn("⚠️ 临时使用默认密钥，生产环境必须设置！");
-}
-
-const FALLBACK_SECRET = "edu-platform-temp-" + Date.now();
-const SECRET = JWT_SECRET || FALLBACK_SECRET;
-
-// 允许的域名（生产环境配置）
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(",") 
-  : ["http://localhost:3000", "http://localhost:8080"];
-
-// CORS配置
-const corsOptions = {
-  origin: (origin, callback) => {
-    // 允许没有origin的请求（如Postman）
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("不允许的域名"));
-    }
-  },
-  credentials: true
-};
-
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const multer = require("multer");
-
-const dataFile = path.join(__dirname, "data.json");
-let data = {users:[],projects:[]};
-
-try {
-  if (fs.existsSync(dataFile)) {
-    const content = fs.readFileSync(dataFile, "utf8").trim();
-    if (content) data = JSON.parse(content);
-  }
-} catch(e) {}
-
-if (!data.users) data.users = [];
-if (!data.projects) data.projects = [];
-
-// 创建默认管理员（首次登录需修改密码）
-if (!data.users.find(u => u.role === "admin")) {
-  const adminPwd = bcrypt.hashSync("123456", 10);
-  data.users.push({
-    id: 1,
-    username: "admin",
-    password: adminPwd,
-    role: "admin",
-    nickname: "管理员",
-    mustChangePassword: true,  // 首次登录必须改密码
-    createdAt: new Date().toISOString()
-  });
-  try { fs.writeFileSync(dataFile, JSON.stringify(data, null, 2)); } catch(e) {}
-}
-
-function saveData() {
-  fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
-}
-
-const uploadsDir = path.join(__dirname, "uploads/projects");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, {recursive:true});
+// 确保上传目录存在
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+if (!fs.existsSync(path.join(uploadsDir, 'projects'))) fs.mkdirSync(path.join(uploadsDir, 'projects'));
 
 // 中间件
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({extended:true}));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(uploadsDir));
 
-// 请求日志（仅生产环境）
-if (process.env.NODE_ENV === "production") {
-  const logStream = fs.createWriteStream(path.join(__dirname, "access.log"), {flags: "a"});
-  app.use(morgan("combined", {stream: logStream}));
-}
+// 路由：健康检查
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date() });
+});
 
-// Rate Limiting
-const ipCounts = new Map();
-function rateLimit(max, window) {
-  return (req, res, next) => {
-    const ip = req.ip || "unknown";
-    const now = Date.now();
-    const rec = ipCounts.get(ip) || {count:0, reset:now+window};
-    if (now > rec.reset) { rec.count = 1; rec.reset = now+window; }
-    else rec.count++;
-    ipCounts.set(ip, rec);
-    if (rec.count > max) return res.status(429).json({error:"请求过于频繁，请稍后再试"});
+// 路由：注册
+app.post('/api/auth/register', async (req, res) => {
+  const { username, password, role = 'student', nickname } = req.body;
+  try {
+    const hashedPassword = await require('bcryptjs').hash(password, 10);
+    db.run('INSERT INTO users (username, password, role, nickname) VALUES (?, ?, ?, ?)',
+      [username, hashedPassword, role, nickname || username],
+      function(err) {
+        if (err) return res.status(400).json({ error: '用户名已存在' });
+        res.json({ message: '注册成功', userId: this.lastID });
+      });
+  } catch (error) {
+    res.status(500).json({ error: '注册失败' });
+  }
+});
+
+// 路由：登录
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  const bcrypt = require('bcryptjs');
+  const jwt = require('jsonwebtoken');
+  
+  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
+    if (err || !user) return res.status(401).json({ error: '用户不存在' });
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) return res.status(401).json({ error: '密码错误' });
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: user.id, username: user.username, role: user.role, nickname: user.nickname, avatar: user.avatar } });
+  });
+});
+
+// 路由：获取用户信息
+app.get('/api/auth/user', (req, res) => {
+  const jwt = require('jsonwebtoken');
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: '请先登录' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    db.get('SELECT id, username, role, nickname, avatar FROM users WHERE id = ?', [decoded.id], (err, user) => {
+      if (err || !user) return res.status(404).json({ error: '用户不存在' });
+      res.json(user);
+    });
+  } catch (e) {
+    res.status(401).json({ error: '登录已过期' });
+  }
+});
+
+// 中间件：验证管理员权限
+const requireAdmin = (req, res, next) => {
+  const jwt = require('jsonwebtoken');
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: '请先登录' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ error: '需要管理员权限' });
+    req.adminUser = decoded;
     next();
-  };
-}
+  } catch (e) {
+    res.status(401).json({ error: '登录已过期' });
+  }
+};
 
-// 健康检查
-app.get("/api/health", (req,res) => res.json({status:"ok", version:"1.1.0"}));
-
-// 用户登录
-app.post("/api/auth/login", rateLimit(10,900000), async (req,res) => {
-  const {username,password} = req.body || {};
-  if (!username || !password) return res.status(400).json({error:"请输入用户名和密码"});
-  const user = data.users.find(u => u.username === username);
-  if (!user) return res.status(401).json({error:"用户名或密码错误"});
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(401).json({error:"用户名或密码错误"});
-  
-  // 检查是否需要修改密码
-  const needsChangePwd = user.mustChangePassword === true;
-  const token = jwt.sign({id:user.id, username:user.username, role:user.role}, SECRET, {expiresIn:"7d"});
-  res.json({
-    token, 
-    user:{id:user.id, username:user.username, role:user.role, nickname:user.nickname},
-    mustChangePassword: needsChangePwd
+// ===== 管理员API =====
+// 获取仪表盘数据
+app.get('/api/admin/dashboard', requireAdmin, (req, res) => {
+  db.get('SELECT COUNT(*) as total FROM users', (err, r1) => {
+    db.get('SELECT COUNT(*) as admins FROM users WHERE role = "admin"', (err, r2) => {
+      db.get('SELECT COUNT(*) as teachers FROM users WHERE role = "teacher"', (err, r3) => {
+        db.get('SELECT COUNT(*) as students FROM users WHERE role = "student"', (err, r4) => {
+          res.json({
+            total: r1.total || 0,
+            admins: r2.admins || 0,
+            teachers: r3.teachers || 0,
+            students: r4.students || 0
+          });
+        });
+      });
+    });
   });
 });
 
-// 管理员登录
-app.post("/api/admin/login", rateLimit(10,900000), async (req,res) => {
-  const {username,password} = req.body || {};
-  if (!username || !password) return res.status(400).json({error:"请输入用户名和密码"});
-  const user = data.users.find(u => u.username === username && u.role === "admin");
-  if (!user) return res.status(401).json({error:"用户名或密码错误"});
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(401).json({error:"用户名或密码错误"});
-  
-  // 检查是否需要修改密码
-  const needsChangePwd = user.mustChangePassword === true;
-  const token = jwt.sign({id:user.id, username:user.username, role:user.role}, SECRET, {expiresIn:"7d"});
-  res.json({
-    token, 
-    user:{id:user.id, username:user.username, role:user.role, nickname:user.nickname},
-    mustChangePassword: needsChangePwd
+// 获取所有用户
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+  db.all('SELECT id, username, role, nickname, avatar, created_at FROM users ORDER BY id DESC', [], (err, users) => {
+    if (err) return res.status(500).json({ error: '获取失败' });
+    const formatted = users.map(u => ({
+      id: u.id,
+      username: u.username,
+      role: u.role,
+      nickname: u.nickname,
+      avatar: u.avatar,
+      createdAt: u.created_at
+    }));
+    res.json(formatted);
   });
-});
-
-// 修改密码
-app.post("/api/auth/change-password", rateLimit(10,900000), auth, async (req,res) => {
-  const {oldPassword, newPassword} = req.body || {};
-  if (!oldPassword || !newPassword) return res.status(400).json({error:"请填写完整"});
-  if (newPassword.length < 6) return res.status(400).json({error:"新密码至少6位"});
-  
-  const user = data.users.find(u => u.id === req.user.id);
-  if (!user) return res.status(404).json({error:"用户不存在"});
-  
-  const valid = await bcrypt.compare(oldPassword, user.password);
-  if (!valid) return res.status(401).json({error:"原密码错误"});
-  
-  user.password = bcrypt.hashSync(newPassword, 10);
-  user.mustChangePassword = false;
-  user.passwordChangedAt = new Date().toISOString();
-  saveData();
-  
-  res.json({message:"密码修改成功"});
-});
-
-// JWT验证中间件
-function auth(req,res,next) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({error:"请先登录"});
-  try { req.user = jwt.verify(token, SECRET); next(); }
-  catch(e) { res.status(401).json({error:"登录已过期"}); }
-}
-
-// 获取用户列表
-app.get("/api/admin/users", rateLimit(60,60000), auth, (req,res) => {
-  if (req.user.role !== "admin") return res.status(403).json({error:"权限不足"});
-  res.json(data.users.map(u => ({id:u.id, username:u.username, nickname:u.nickname, role:u.role, createdAt:u.createdAt})));
 });
 
 // 添加用户
-app.post("/api/admin/users", rateLimit(60,60000), auth, async (req,res) => {
-  if (req.user.role !== "admin") return res.status(403).json({error:"权限不足"});
-  const {username,password,role,nickname} = req.body || {};
-  if (!username || !password) return res.status(400).json({error:"请提供用户名和密码"});
-  if (username.length < 3 || username.length > 20) return res.status(400).json({error:"用户名长度需在3-20个字符之间"});
-  if (password.length < 6) return res.status(400).json({error:"密码长度至少6个字符"});
-  if (data.users.find(u => u.username === username)) return res.status(400).json({error:"用户名已存在"});
+app.post('/api/admin/users', requireAdmin, async (req, res) => {
+  const { username, password, role = 'student', nickname } = req.body;
+  if (!username || !password) return res.status(400).json({ error: '用户名和密码必填' });
+  try {
+    const hashedPassword = await require('bcryptjs').hash(password, 10);
+    db.run('INSERT INTO users (username, password, role, nickname) VALUES (?, ?, ?, ?)',
+      [username, hashedPassword, role, nickname || username],
+      function(err) {
+        if (err) return res.status(400).json({ error: '用户名已存在或其他错误' });
+        res.json({ message: '添加成功', userId: this.lastID });
+      });
+  } catch (error) {
+    res.status(500).json({ error: '添加失败' });
+  }
+});
+
+// 编辑用户
+app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { password, role } = req.body;
   
-  const user = {
-    id: Date.now(),
-    username,
-    password: bcrypt.hashSync(password, 10),
-    role: role || "student",
-    nickname: nickname || username,
-    mustChangePassword: false,
-    createdAt: new Date().toISOString()
-  };
-  data.users.push(user);
-  saveData();
-  res.json({message:"添加成功", userId:user.id});
+  if (!role) return res.status(400).json({ error: '至少需要提供角色' });
+  
+  try {
+    if (password) {
+      const hashedPassword = await require('bcryptjs').hash(password, 10);
+      db.run('UPDATE users SET role = ?, password = ? WHERE id = ?', [role, hashedPassword, id], function(err) {
+        if (err) return res.status(500).json({ error: '更新失败' });
+        res.json({ message: '更新成功' });
+      });
+    } else {
+      db.run('UPDATE users SET role = ? WHERE id = ?', [role, id], function(err) {
+        if (err) return res.status(500).json({ error: '更新失败' });
+        res.json({ message: '更新成功' });
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: '更新失败' });
+  }
 });
 
 // 删除用户
-app.delete("/api/admin/users/:id", rateLimit(60,60000), auth, (req,res) => {
-  if (req.user.role !== "admin") return res.status(403).json({error:"权限不足"});
-  const idx = data.users.findIndex(u => u.id == req.params.id);
-  if (idx === -1) return res.status(404).json({error:"用户不存在"});
-  if (data.users[idx].role === "admin") return res.status(400).json({error:"不能删除管理员"});
-  data.users.splice(idx, 1);
-  saveData();
-  res.json({message:"删除成功"});
+app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  if (parseInt(id) === req.adminUser.id) {
+    return res.status(400).json({ error: '不能删除自己的账号' });
+  }
+  db.run('DELETE FROM users WHERE id = ?', [id], function(err) {
+    if (err) return res.status(500).json({ error: '删除失败' });
+    res.json({ message: '删除成功' });
+  });
 });
 
-// 文件上传配置（安全：限制文件类型）
-const ALLOWED_EXTENSIONS = [".sb3", ".json", ".zip", ".png", ".jpg", ".jpeg", ".gif"];
+// 路由：获取作品列表
+app.get('/api/projects', (req, res) => {
+  const jwt = require('jsonwebtoken');
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: '请先登录' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    db.all('SELECT id, name, cover_path, description, created_at, updated_at FROM projects WHERE user_id = ? ORDER BY updated_at DESC', [decoded.id], (err, projects) => {
+      if (err) return res.status(500).json({ error: '获取失败' });
+      res.json(projects);
+    });
+  } catch (e) {
+    res.status(401).json({ error: '登录已过期' });
+  }
+});
+
+// 路由：保存作品
+const multer = require('multer');
 const storage = multer.diskStorage({
-  destination: (req,file,cb) => cb(null, uploadsDir),
-  filename: (req,file,cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, Date.now() + "-" + Math.round(Math.random()*1E9) + ext);
-  }
+  destination: (req, file, cb) => cb(null, path.join(uploadsDir, 'projects')),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname))
 });
-const upload = multer({
-  storage, 
-  limits:{fileSize:10*1024*1024},
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ALLOWED_EXTENSIONS.includes(ext)) {
-      cb(null, true);
+const upload = multer({ storage });
+
+app.post('/api/projects', upload.single('file'), (req, res) => {
+  const jwt = require('jsonwebtoken');
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: '请先登录' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { name, description, projectId } = req.body;
+    const filePath = req.file ? '/uploads/projects/' + req.file.filename : null;
+    
+    if (projectId) {
+      db.run('UPDATE projects SET name = ?, file_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+        [name, filePath, projectId, decoded.id], function(err) {
+          if (err) return res.status(500).json({ error: '保存失败' });
+          res.json({ message: '更新成功', projectId });
+        });
     } else {
-      cb(new Error("不支持的文件类型"));
+      db.run('INSERT INTO projects (user_id, name, file_path, description) VALUES (?, ?, ?, ?)',
+        [decoded.id, name, filePath, description], function(err) {
+          if (err) return res.status(500).json({ error: '保存失败' });
+          res.json({ message: '保存成功', projectId: this.lastID });
+        });
     }
+  } catch (e) {
+    res.status(401).json({ error: '登录已过期' });
   }
 });
 
-// 获取作品列表
-app.get("/api/projects", rateLimit(60,60000), auth, (req,res) => {
-  res.json(data.projects.filter(p => p.userId === req.user.id));
-});
-
-// 保存作品
-app.post("/api/projects", rateLimit(60,60000), auth, upload.single("file"), (req,res) => {
-  const {name,description,projectId} = req.body || {};
-  if (!name) return res.status(400).json({error:"请输入项目名称"});
-  const filePath = req.file ? "/uploads/projects/" + req.file.filename : null;
-  
-  if (projectId) {
-    const p = data.projects.find(p => p.id == projectId && p.userId === req.user.id);
-    if (p) {
-      p.name = name;
-      if (filePath) p.filePath = filePath;
-      if (description) p.description = description;
-      p.updatedAt = new Date().toISOString();
-      saveData();
-      return res.json({message:"更新成功", projectId:p.id});
-    }
-  }
-  
-  const project = {
-    id: Date.now(),
-    userId: req.user.id,
-    name,
-    filePath,
-    description: description || "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  data.projects.push(project);
-  saveData();
-  res.json({message:"保存成功", projectId:project.id});
-});
-
-// 错误处理中间件
-app.use((err, req, res, next) => {
-  console.error("服务器错误:", err.message);
-  res.status(500).json({error:"服务器内部错误"});
-});
-
-// 启动服务器
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("========================================");
-  console.log("教育平台服务器已启动: http://0.0.0.0:" + PORT);
-  console.log("版本: 1.1.0");
-  console.log("========================================");
+app.listen(PORT, () => {
+  console.log('教务平台后端服务已启动: http://localhost:' + PORT);
 });

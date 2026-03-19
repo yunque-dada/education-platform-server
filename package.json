@@ -1,18 +1,17 @@
 {
-  "name": "education-platform",
+  "name": "education-platform-server",
   "version": "1.0.0",
-  "description": "乐造编程教育平台",
+  "description": "乐造教育平台后端服务",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "4.21.0",
+    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3",
     "multer": "^1.4.5-lts.1",
-    "body-parser": "1.20.2"
+    "sqlite3": "^5.1.6"
   }
 }
