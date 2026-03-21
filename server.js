@@ -4,32 +4,68 @@ const path = require('path');
 const fs = require('fs');
 
 const dbPath = path.join(__dirname, 'data.db');
-const db = new (require('sqlite3').verbose()).Database(dbPath);
+const Database = require('better-sqlite3');
+const db = new Database(dbPath);
 
-db.serialize(() => {
-  db.run('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT DEFAULT "student", nickname TEXT, avatar TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
-  db.run('CREATE TABLE IF NOT EXISTS courses (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, description TEXT, cover_image TEXT, teacher_id INTEGER, duration INTEGER DEFAULT 0, level TEXT DEFAULT "入门", status TEXT DEFAULT "draft", created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
-  db.run('CREATE TABLE IF NOT EXISTS enrollments (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL, course_id INTEGER NOT NULL, progress INTEGER DEFAULT 0, status TEXT DEFAULT "enrolled", enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
-  db.run('CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, course_id INTEGER, name TEXT NOT NULL, file_path TEXT, cover_path TEXT, description TEXT, status TEXT DEFAULT "draft", created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
-  
-  db.get("SELECT * FROM users WHERE username = 'admin'", (err, row) => {
-    if (!row) {
-      require('bcryptjs').hash('123456', 10).then(hash => {
-        db.run('INSERT INTO users (username, password, role, nickname) VALUES (?, ?, ?, ?)', ['admin', hash, 'admin', '管理员']);
-        console.log('默认管理员: admin / 123456');
-      });
-    }
-  });
-  
-  db.get("SELECT COUNT(*) as cnt FROM courses", (err, row) => {
-    if (!row || row.cnt === 0) {
-      db.run("INSERT INTO courses (title, description, level, duration, status) VALUES ('Scratch趣味编程', '适合零基础学员，通过拖拽式编程培养逻辑思维', '入门', 20, 'published')");
-      db.run("INSERT INTO courses (title, description, level, duration, status) VALUES ('Python基础', 'Python编程入门，学习变量、循环、函数等基础概念', '入门', 30, 'published')");
-      console.log('示例课程已创建');
-    }
-  });
-  console.log('数据库初始化完成');
-});
+// 初始化表
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT DEFAULT 'student',
+    nickname TEXT,
+    avatar TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS courses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    cover_image TEXT,
+    teacher_id INTEGER,
+    duration INTEGER DEFAULT 0,
+    level TEXT DEFAULT '入门',
+    status TEXT DEFAULT 'draft',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS enrollments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL,
+    course_id INTEGER NOT NULL,
+    progress INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'enrolled',
+    enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    course_id INTEGER,
+    name TEXT NOT NULL,
+    file_path TEXT,
+    cover_path TEXT,
+    description TEXT,
+    status TEXT DEFAULT 'draft',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+const bcrypt = require('bcryptjs');
+const adminUser = db.prepare("SELECT * FROM users WHERE username = 'admin'").get();
+if (!adminUser) {
+  const hash = bcrypt.hashSync('123456', 10);
+  db.prepare('INSERT INTO users (username, password, role, nickname) VALUES (?, ?, ?, ?)').run('admin', hash, 'admin', '管理员');
+  console.log('默认管理员: admin / 123456');
+}
+
+const courseCount = db.prepare("SELECT COUNT(*) as cnt FROM courses").get();
+if (!courseCount || courseCount.cnt === 0) {
+  db.prepare("INSERT INTO courses (title, description, level, duration, status) VALUES (?, ?, ?, ?, ?)").run('Scratch趣味编程', '适合零基础学员，通过拖拽式编程培养逻辑思维', '入门', 20, 'published');
+  db.prepare("INSERT INTO courses (title, description, level, duration, status) VALUES (?, ?, ?, ?, ?)").run('Python基础', 'Python编程入门，学习变量、循环、函数等基础概念', '入门', 30, 'published');
+  console.log('示例课程已创建');
+}
+console.log('数据库初始化完成');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,11 +88,10 @@ app.get('/', (req, res) => res.send('Education Platform API Running'));
 app.post('/api/auth/register', async (req, res) => {
   const {username, password, role='student', nickname} = req.body;
   try {
-    const hashed = await require('bcryptjs').hash(password, 10);
-    db.run('INSERT INTO users (username, password, role, nickname) VALUES (?, ?, ?, ?)', [username, hashed, role, nickname||username], function(err) {
-      if(err) return res.status(400).json({error:'用户名已存在'});
-      res.json({message:'注册成功', userId:this.lastID});
-    });
+    const hashed = await bcrypt.hash(password, 10);
+    const stmt = db.prepare('INSERT INTO users (username, password, role, nickname) VALUES (?, ?, ?, ?)');
+    const result = stmt.run(username, hashed, role, nickname||username);
+    res.json({message:'注册成功', userId:result.lastInsertRowid});
   } catch(e) { res.status(500).json({error:'注册失败'}); }
 });
 
