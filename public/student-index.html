@@ -18,32 +18,18 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+    .scratch-bg {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+    }
+    .python-bg {
+      background: linear-gradient(135deg, #3776ab 0%, #ffd43b 100%);
+    }
     .card-hover {
       transition: all 0.3s ease;
     }
     .card-hover:hover {
       transform: translateY(-4px);
       box-shadow: 0 20px 40px rgba(6, 182, 212, 0.15);
-    }
-    .progress-bar {
-      transition: width 1s ease-in-out;
-    }
-    .sidebar-item {
-      transition: all 0.3s ease;
-    }
-    .sidebar-item:hover {
-      background: rgba(6, 182, 212, 0.1);
-    }
-    .sidebar-item.active {
-      background: linear-gradient(135deg, #06b6d4, #10b981);
-      color: white;
-    }
-    .pulse-dot {
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
     }
   </style>
 </head>
@@ -71,35 +57,37 @@
             李
           </div>
           <div class="flex-1">
-            <div class="font-bold text-slate-700" id="studentName">加载中...</div>
+            <div class="font-bold text-slate-700">李浚源</div>
             <div class="text-xs text-slate-500">Lv.1 编程新手</div>
           </div>
-          <div class="pulse-dot w-3 h-3 bg-emerald-400 rounded-full"></div>
         </div>
       </div>
       
       <!-- 导航菜单 -->
       <nav class="flex-1 p-4 space-y-2">
-        <a href="#" onclick="showSection('courses')" id="nav-courses" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
+        <a href="#" onclick="showSection('home')" id="nav-home" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
+          <i class="fas fa-home w-5 text-cyan-500"></i>
+          首页
+        </a>
+        <a href="#" onclick="showSection('scratch')" id="nav-scratch" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
+          <i class="fas fa-cat w-5 text-orange-500"></i>
+          Scratch 3.0 编程
+        </a>
+        <a href="#" onclick="showSection('python')" id="nav-python" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
+          <i class="fab fa-python w-5 text-blue-500"></i>
+          Python 编程
+        </a>
+        <a href="#" onclick="showSection('courses')" id="nav-courses" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
           <i class="fas fa-book-open w-5 text-cyan-500"></i>
           我的课程
         </a>
         <a href="#" onclick="showSection('homework')" id="nav-homework" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
           <i class="fas fa-tasks w-5 text-amber-500"></i>
           我的作业
-          <span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full" id="homeworkBadge">3</span>
         </a>
         <a href="#" onclick="showSection('projects')" id="nav-projects" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
           <i class="fas fa-folder-open w-5 text-purple-500"></i>
           我的作品
-        </a>
-        <a href="#" onclick="showSection('progress')" id="nav-progress" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
-          <i class="fas fa-chart-line w-5 text-emerald-500"></i>
-          学习进度
-        </a>
-        <a href="#" onclick="showSection('scratch')" id="nav-scratch" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 font-medium">
-          <i class="fas fa-cat w-5 text-orange-500"></i>
-          Scratch编程
         </a>
       </nav>
       
@@ -116,88 +104,152 @@
     <main class="flex-1 p-8">
       <!-- 欢迎标题 -->
       <div class="mb-8">
-        <h1 class="text-2xl font-bold text-slate-800 mb-2" id="pageTitle">我的课程</h1>
-        <p class="text-slate-500">欢迎回来！继续你的编程之旅 🚀</p>
+        <h1 class="text-2xl font-bold text-slate-800 mb-2" id="pageTitle">首页</h1>
+        <p class="text-slate-500">欢迎回来！选择你喜欢的编程课程开始学习 🚀</p>
+      </div>
+      
+      <!-- 首页 -->
+      <div id="content-home">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <!-- Scratch 编程卡片 -->
+          <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 cursor-pointer" onclick="showSection('scratch')">
+            <div class="scratch-bg h-40 flex items-center justify-center">
+              <i class="fas fa-cat text-6xl text-white opacity-90"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="font-bold text-xl text-slate-800 mb-2">Scratch 3.0 编程</h3>
+              <p class="text-slate-500 mb-4">适合零基础，通过拖拽积木学习编程逻辑</p>
+              <span class="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl text-sm font-medium">
+                开始编程 →
+              </span>
+            </div>
+          </div>
+          
+          <!-- Python 编程卡片 -->
+          <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 cursor-pointer" onclick="showSection('python')">
+            <div class="python-bg h-40 flex items-center justify-center">
+              <i class="fab fa-python text-6xl text-white opacity-90"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="font-bold text-xl text-slate-800 mb-2">Python 编程</h3>
+              <p class="text-slate-500 mb-4">适合进阶学习，写真正的代码</p>
+              <span class="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-medium">
+                开始编程 →
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 学习进度 -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h3 class="font-bold text-lg text-slate-800 mb-4">📊 本周学习进度</h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-cyan-50 rounded-xl">
+              <div class="text-3xl font-bold text-cyan-600">5h</div>
+              <div class="text-sm text-slate-500">学习时长</div>
+            </div>
+            <div class="text-center p-4 bg-green-50 rounded-xl">
+              <div class="text-3xl font-bold text-green-600">3</div>
+              <div class="text-sm text-slate-500">完成课程</div>
+            </div>
+            <div class="text-center p-4 bg-purple-50 rounded-xl">
+              <div class="text-3xl font-bold text-purple-600">2</div>
+              <div class="text-sm text-slate-500">作品数量</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Scratch 编程 -->
+      <div id="content-scratch" style="display:none">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="p-4 bg-gradient-to-r from-orange-500 to-red-500 text-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-cat text-2xl"></i>
+              <span class="font-bold text-lg">Scratch 3.0 在线编程</span>
+            </div>
+            <button class="px-4 py-2 bg-white text-orange-500 rounded-lg font-medium">
+              <i class="fas fa-save mr-1"></i> 保存作品
+            </button>
+          </div>
+          <iframe 
+            src="https://scratch.mit.edu/projects/editor/?tutorial=getStarted" 
+            class="w-full h-[600px]"
+            allowtransparency="true"
+            allow="microphone; camera"
+          ></iframe>
+        </div>
+      </div>
+      
+      <!-- Python 编程 -->
+      <div id="content-python" style="display:none">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="p-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <i class="fab fa-python text-2xl"></i>
+              <span class="font-bold text-lg">Python 在线编程</span>
+            </div>
+            <div class="flex gap-2">
+              <button class="px-4 py-2 bg-white text-blue-500 rounded-lg font-medium">
+                <i class="fas fa-play mr-1"></i> 运行
+              </button>
+              <button class="px-4 py-2 bg-white text-blue-500 rounded-lg font-medium">
+                <i class="fas fa-save mr-1"></i> 保存
+              </button>
+            </div>
+          </div>
+          <div class="flex h-[600px]">
+            <!-- 代码编辑器 -->
+            <div class="flex-1 bg-slate-900 p-4">
+              <textarea 
+                id="python-code" 
+                class="w-full h-full bg-transparent text-green-400 font-mono text-sm resize-none outline-none"
+                placeholder="# 在这里编写 Python 代码&#10;&#10;print('Hello, World!')"
+>print("Hello, 欢迎来到乐造编程!")
+print("现在开始你的 Python 之旅吧 🚀")
+
+# 示例：输出九九乘法表
+for i in range(1, 10):
+    for j in range(1, i+1):
+        print(f"{j}×{i}={i*j}", end="\t")
+    print()
+</textarea>
+            </div>
+            <!-- 输出结果 -->
+            <div class="w-1/3 bg-slate-800 p-4 border-l border-slate-700">
+              <div class="text-slate-400 text-sm mb-2">输出结果：</div>
+              <pre id="python-output" class="text-green-400 font-mono text-sm whitespace-pre-wrap">点击"运行"按钮查看输出结果</pre>
+            </div>
+          </div>
+        </div>
       </div>
       
       <!-- 我的课程 -->
-      <div id="content-courses">
+      <div id="content-courses" style="display:none">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- 课程卡片 1 -->
           <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
             <div class="h-32 bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
               <i class="fas fa-cat text-5xl text-white opacity-80"></i>
             </div>
             <div class="p-5">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="px-2 py-1 bg-cyan-100 text-cyan-600 text-xs font-medium rounded-full">Scratch</span>
-                <span class="px-2 py-1 bg-green-100 text-green-600 text-xs font-medium rounded-full">进行中</span>
-              </div>
               <h3 class="font-bold text-lg text-slate-800 mb-2">Scratch基础入门</h3>
               <p class="text-sm text-slate-500 mb-4">学习编程逻辑，创建第一个互动故事</p>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="progress-bar h-full bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full" style="width: 65%"></div>
-                  </div>
-                  <span class="text-xs text-slate-500">65%</span>
-                </div>
-                <button class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white text-sm font-medium rounded-xl hover:shadow-lg transition">
-                  继续学习
-                </button>
-              </div>
+              <button class="w-full py-2 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white font-medium rounded-xl">
+                继续学习
+              </button>
             </div>
           </div>
           
-          <!-- 课程卡片 2 -->
           <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
             <div class="h-32 bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-              <i class="fas fa-python text-5xl text-white opacity-80"></i>
+              <i class="fab fa-python text-5xl text-white opacity-80"></i>
             </div>
             <div class="p-5">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="px-2 py-1 bg-purple-100 text-purple-600 text-xs font-medium rounded-full">Python</span>
-                <span class="px-2 py-1 bg-yellow-100 text-yellow-600 text-xs font-medium rounded-full">未开始</span>
-              </div>
               <h3 class="font-bold text-lg text-slate-800 mb-2">Python基础语法</h3>
               <p class="text-sm text-slate-500 mb-4">掌握Python基本语法和编程思维</p>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="progress-bar h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full" style="width: 0%"></div>
-                  </div>
-                  <span class="text-xs text-slate-500">0%</span>
-                </div>
-                <button class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-200 transition">
-                  开始学习
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 课程卡片 3 -->
-          <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
-            <div class="h-32 bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-              <i class="fas fa-robot text-5xl text-white opacity-80"></i>
-            </div>
-            <div class="p-5">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="px-2 py-1 bg-amber-100 text-amber-600 text-xs font-medium rounded-full">AI</span>
-                <span class="px-2 py-1 bg-yellow-100 text-yellow-600 text-xs font-medium rounded-full">未开始</span>
-              </div>
-              <h3 class="font-bold text-lg text-slate-800 mb-2">AI创意编程</h3>
-              <p class="text-sm text-slate-500 mb-4">结合AI工具创作有趣的项目</p>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="progress-bar h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full" style="width: 0%"></div>
-                  </div>
-                  <span class="text-xs text-slate-500">0%</span>
-                </div>
-                <button class="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-200 transition">
-                  即将上线
-                </button>
-              </div>
+              <button class="w-full py-2 bg-slate-100 text-slate-600 font-medium rounded-xl">
+                开始学习
+              </button>
             </div>
           </div>
         </div>
@@ -206,78 +258,23 @@
       <!-- 我的作业 -->
       <div id="content-homework" style="display:none">
         <div class="space-y-4">
-          <!-- 作业项 -->
           <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center">
-                  <i class="fas fa-cat text-cyan-600 text-xl"></i>
-                </div>
-                <div>
-                  <h3 class="font-bold text-slate-800"> Scratch 第一次作业</h3>
-                  <p class="text-sm text-slate-500">创建一个小猫接苹果的游戏</p>
-                </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-slate-800">Scratch 第一次作业</h3>
+                <p class="text-sm text-slate-500">创建一个小猫接苹果的游戏</p>
               </div>
               <span class="px-3 py-1 bg-red-100 text-red-600 text-sm font-medium rounded-full">待完成</span>
             </div>
-            <div class="flex items-center justify-between">
-              <div class="text-sm text-slate-500">
-                <i class="far fa-clock mr-1"></i>
-                截止日期：2026-03-25
-              </div>
-              <button class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white font-medium rounded-xl">
-                开始做作业
-              </button>
-            </div>
           </div>
           
-          <!-- 作业项 -->
           <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
-                  <i class="fas fa-puzzle-piece text-amber-600 text-xl"></i>
-                </div>
-                <div>
-                  <h3 class="font-bold text-slate-800"> Scratch 第二次作业</h3>
-                  <p class="text-sm text-slate-500">制作一个简单的动画故事</p>
-                </div>
-              </div>
-              <span class="px-3 py-1 bg-yellow-100 text-yellow-600 text-sm font-medium rounded-full">进行中</span>
-            </div>
             <div class="flex items-center justify-between">
-              <div class="text-sm text-slate-500">
-                <i class="far fa-clock mr-1"></i>
-                截止日期：2026-04-01
-              </div>
-              <button class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white font-medium rounded-xl">
-                继续完成
-              </button>
-            </div>
-          </div>
-          
-          <!-- 已完成作业 -->
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                  <i class="fas fa-check text-green-600 text-xl"></i>
-                </div>
-                <div>
-                  <h3 class="font-bold text-slate-800"> Scratch 入门测试</h3>
-                  <p class="text-sm text-slate-500">基础操作测试题</p>
-                </div>
+              <div>
+                <h3 class="font-bold text-slate-800">Python 第一次作业</h3>
+                <p class="text-sm text-slate-500">编写一个计算器程序</p>
               </div>
               <span class="px-3 py-1 bg-green-100 text-green-600 text-sm font-medium rounded-full">已完成</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <div class="text-sm text-slate-500">
-                <i class="fas fa-star text-yellow-500 mr-1"></i>
-                得分：95分
-              </div>
-              <button class="px-6 py-2 bg-slate-100 text-slate-600 font-medium rounded-xl">
-                查看详情
-              </button>
             </div>
           </div>
         </div>
@@ -293,127 +290,16 @@
             <div class="p-5">
               <h3 class="font-bold text-lg text-slate-800 mb-2">接苹果游戏</h3>
               <p class="text-sm text-slate-500 mb-3">用Scratch制作的第一个游戏</p>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400">2026-03-15</span>
-                <button class="text-cyan-500 font-medium text-sm hover:underline">查看作品</button>
-              </div>
+              <span class="text-xs text-slate-400">2026-03-15</span>
             </div>
           </div>
           
-          <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 card-hover">
-            <div class="h-40 bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-              <i class="fas fa-film text-5xl text-white opacity-80"></i>
-            </div>
-            <div class="p-5">
-              <h3 class="font-bold text-lg text-slate-800 mb-2">动画故事</h3>
-              <p class="text-sm text-slate-500 mb-3">我的第一个Scratch动画</p>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-slate-400">2026-03-10</span>
-                <button class="text-cyan-500 font-medium text-sm hover:underline">查看作品</button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 空作品位 -->
           <div class="bg-white rounded-2xl overflow-hidden shadow-sm border-2 border-dashed border-slate-200 flex items-center justify-center min-h-[200px]">
             <div class="text-center">
               <i class="fas fa-plus text-3xl text-slate-300 mb-2"></i>
               <p class="text-slate-400">创建新作品</p>
             </div>
           </div>
-        </div>
-      </div>
-      
-      <!-- 学习进度 -->
-      <div id="content-progress" style="display:none">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center">
-                <i class="fas fa-book text-cyan-600"></i>
-              </div>
-              <div>
-                <div class="text-2xl font-bold text-slate-800">3</div>
-                <div class="text-sm text-slate-500">学习中课程</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                <i class="fas fa-check-circle text-green-600"></i>
-              </div>
-              <div>
-                <div class="text-2xl font-bold text-slate-800">12</div>
-                <div class="text-sm text-slate-500">已完成作业</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                <i class="fas fa-clock text-purple-600"></i>
-              </div>
-              <div>
-                <div class="text-2xl font-bold text-slate-800">28h</div>
-                <div class="text-sm text-slate-500">学习时长</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 进度详情 -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 class="font-bold text-lg text-slate-800 mb-6">课程进度</h3>
-          
-          <div class="space-y-6">
-            <div>
-              <div class="flex justify-between mb-2">
-                <span class="font-medium text-slate-700">Scratch基础入门</span>
-                <span class="text-cyan-600 font-medium">65%</span>
-              </div>
-              <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div class="progress-bar h-full bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full" style="width: 65%"></div>
-              </div>
-            </div>
-            
-            <div>
-              <div class="flex justify-between mb-2">
-                <span class="font-medium text-slate-700">Python基础语法</span>
-                <span class="text-slate-400 font-medium">0%</span>
-              </div>
-              <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div class="progress-bar h-full bg-slate-200 rounded-full" style="width: 0%"></div>
-              </div>
-            </div>
-            
-            <div>
-              <div class="flex justify-between mb-2">
-                <span class="font-medium text-slate-700">AI创意编程</span>
-                <span class="text-slate-400 font-medium">未开始</span>
-              </div>
-              <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div class="progress-bar h-full bg-slate-200 rounded-full" style="width: 0%"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Scratch编程 -->
-      <div id="content-scratch" style="display:none">
-        <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center">
-          <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center">
-            <i class="fas fa-cat text-4xl text-white"></i>
-          </div>
-          <h2 class="text-2xl font-bold text-slate-800 mb-3">Scratch 创意工坊</h2>
-          <p class="text-slate-500 mb-6">点击下方按钮开始Scratch编程之旅</p>
-          <button class="px-8 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-2xl hover:shadow-lg transition">
-            <i class="fas fa-play mr-2"></i>
-            打开Scratch编辑器
-          </button>
         </div>
       </div>
     </main>
@@ -432,17 +318,21 @@
       
       // 更新导航状态
       document.querySelectorAll('.sidebar-item').forEach(el => {
-        el.classList.remove('active');
+        el.classList.remove('active', 'bg-cyan-500', 'text-white');
+        el.classList.add('text-slate-600');
       });
-      document.getElementById('nav-' + section).classList.add('active');
+      const navItem = document.getElementById('nav-' + section);
+      navItem.classList.add('active', 'bg-cyan-500', 'text-white');
+      navItem.classList.remove('text-slate-600');
       
       // 更新标题
       const titles = {
+        'home': '首页',
+        'scratch': 'Scratch 3.0 编程',
+        'python': 'Python 编程',
         'courses': '我的课程',
         'homework': '我的作业',
-        'projects': '我的作品',
-        'progress': '学习进度',
-        'scratch': 'Scratch编程'
+        'projects': '我的作品'
       };
       document.getElementById('pageTitle').innerText = titles[section] || '学生中心';
     }
@@ -454,25 +344,37 @@
       }
     }
     
-    // 获取学生信息（示例）
-    async function loadStudentInfo() {
-      try {
-        const token = localStorage.getItem('token');
-        // 这里可以调用API获取学生信息
-        // const res = await fetch('/api/student/info', {
-        //   headers: { 'Authorization': 'Bearer ' + token }
-        // });
-        // const data = await res.json();
-        
-        // 模拟数据
-        document.getElementById('studentName').innerText = '李浚源';
-      } catch (e) {
-        console.error('加载学生信息失败', e);
+    // Python 运行（简单的本地模拟）
+    function runPython() {
+      const code = document.getElementById('python-code').value;
+      const output = document.getElementById('python-output');
+      
+      // 简单的 print 输出模拟
+      let result = '';
+      const lines = code.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('print(') && trimmed.endsWith(')')) {
+          let content = trimmed.slice(6, -1);
+          // 处理字符串
+          if ((content.startsWith('"') && content.endsWith('"')) || 
+              (content.startsWith("'") && content.endsWith("'"))) {
+            content = content.slice(1, -1);
+          }
+          // 处理 f-string
+          if (content.startsWith('f"') || content.startsWith("f'")) {
+            content = content.slice(2, -1);
+            // 简单替换
+            content = content.replace(/\{([^}]+)\}/g, (match, expr) => {
+              return expr;
+            });
+          }
+          result += content + '\n';
+        }
       }
+      
+      output.textContent = result || '代码执行完成（无输出）';
     }
-    
-    // 页面加载时获取学生信息
-    loadStudentInfo();
   </script>
 </body>
 </html>
