@@ -68,7 +68,7 @@ if (!courseCount || courseCount.cnt === 0) {
 console.log('数据库初始化完成');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const JWT_SECRET = 'education-platform-secret-key-2024';
 
 const uploadsDir = path.join(__dirname, 'uploads');
